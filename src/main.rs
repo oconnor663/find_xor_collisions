@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use std::array;
 use std::cmp;
 
@@ -38,16 +38,17 @@ fn print_matrix(matrix: [[u8; N + 1]; LEN]) {
 fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> Result<[[u8; N + 1]; LEN]> {
     for col in 0..cmp::min(N, LEN) {
         // Find a row below our current position (which is `col`) with this column set.
-        let mut found_row = Err(anyhow!("no row found"));
+        let mut found_row = None;
         for row in col..N {
             if matrix[row][col] == 1 {
-                found_row = Ok(row);
+                found_row = Some(row);
                 break;
             }
         }
         // Swap the row we found (if any) with the current one (index `col`), or bail if we didn't
         // find one.
-        matrix.swap(col, found_row?);
+        let Some(found_row) = found_row else { bail!("no row found for col {}", col) };
+        matrix.swap(col, found_row);
         // Eliminate this column from all rows below.
         for row in col + 1..N {
             if matrix[row][col] == 1 {
@@ -69,7 +70,7 @@ fn make_matrix(vecs: [[u8; LEN]; N], target: [u8; LEN]) -> [[u8; N + 1]; LEN] {
     matrix
 }
 
-fn main() {
+fn main() -> Result<()> {
     const LEN: usize = 3;
     const N: usize = 3;
 
@@ -83,6 +84,13 @@ fn main() {
     println!("target:");
     print_row(target);
     println!();
+    println!("transposed equations:");
     let matrix = make_matrix(vecs, target);
     print_matrix(matrix);
+    println!();
+    println!("row eschelon form:");
+    let re_form = row_eschelon_form(matrix)?;
+    print_matrix(re_form);
+
+    Ok(())
 }
