@@ -1,8 +1,8 @@
 use std::array;
 use std::cmp;
 
-const LEN: usize = 3;
-const N: usize = 3;
+const LEN: usize = 256;
+const N: usize = 256;
 
 fn random_vec() -> [u8; LEN] {
     array::from_fn(|_| rand::random::<u8>() % 2)
@@ -95,9 +95,6 @@ fn back_propagate(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
 }
 
 fn main() {
-    const LEN: usize = 3;
-    const N: usize = 3;
-
     let vecs: [[u8; LEN]; N] = array::from_fn(|_| random_vec());
     let target = random_vec();
 
@@ -154,7 +151,7 @@ fn main() {
             print_row(vecs[i]);
         }
     }
-    for _ in 0..(2 * LEN + 1) {
+    for _ in 0..(LEN + 2) {
         print!("-");
     }
     println!();
