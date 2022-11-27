@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::array;
 use std::cmp;
 
@@ -35,28 +35,33 @@ fn print_matrix(matrix: [[u8; N + 1]; LEN]) {
     }
 }
 
-fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> Result<[[u8; N + 1]; LEN]> {
+fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
+    let mut current_row = 0;
     for col in 0..cmp::min(N, LEN) {
-        // Find a row below our current position (which is `col`) with this column set.
+        // Find a row at or below the current one with this column set.
         let mut found_row = None;
-        for row in col..N {
+        for row in current_row..N {
             if matrix[row][col] == 1 {
                 found_row = Some(row);
                 break;
             }
         }
-        // Swap the row we found (if any) with the current one (index `col`), or bail if we didn't
-        // find one.
-        let Some(found_row) = found_row else { bail!("no row found for col {}", col) };
-        matrix.swap(col, found_row);
+        // If we did find a row, swap it with the current one. If we didn't, keep the current row
+        // and continue to the next column.
+        if let Some(found_row) = found_row {
+            matrix.swap(current_row, found_row);
+        } else {
+            continue;
+        }
         // Eliminate this column from all rows below.
-        for row in col + 1..N {
+        for row in current_row + 1..N {
             if matrix[row][col] == 1 {
-                matrix[row] = add(matrix[row], matrix[col]);
+                matrix[row] = add(matrix[row], matrix[current_row]);
             }
         }
+        current_row += 1;
     }
-    Ok(matrix)
+    matrix
 }
 
 fn make_matrix(vecs: [[u8; LEN]; N], target: [u8; LEN]) -> [[u8; N + 1]; LEN] {
@@ -76,6 +81,10 @@ fn main() -> Result<()> {
 
     let vecs: [[u8; LEN]; N] = array::from_fn(|_| random_vec());
     let target = random_vec();
+
+    // let vecs = [[0, 0, 0], [1, 1, 1], [0, 1, 0]];
+    // let target = [0, 1, 1];
+
     println!("vecs:");
     for v in vecs {
         print_row(v);
@@ -89,7 +98,7 @@ fn main() -> Result<()> {
     print_matrix(matrix);
     println!();
     println!("row eschelon form:");
-    let re_form = row_eschelon_form(matrix)?;
+    let re_form = row_eschelon_form(matrix);
     print_matrix(re_form);
 
     Ok(())
