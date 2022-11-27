@@ -128,6 +128,7 @@ fn main() {
     }
 
     // Print the results.
+    let mut result_words = Vec::new();
     print!("[");
     let mut first = true;
     for i in 0..N {
@@ -138,7 +139,22 @@ fn main() {
                 print!(", ");
             }
             print!("{:?}", words[i]);
+            result_words.push(words[i]);
         }
     }
     println!("]");
+
+    // Assert that the results are correct.
+    let target_hash = *blake3::hash(target_str.as_bytes()).as_bytes();
+    let mut sum = [0u8; 32];
+    for &word in &result_words {
+        for (i, b) in blake3::hash(word.as_bytes())
+            .as_bytes()
+            .into_iter()
+            .enumerate()
+        {
+            sum[i] ^= b;
+        }
+    }
+    assert_eq!(sum, target_hash);
 }
