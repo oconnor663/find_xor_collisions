@@ -1,7 +1,7 @@
 use std::array;
 
-const NUM_WORDS: usize = 1000;
 const WORDS: &str = include_str!("../words.txt");
+const NUM_WORDS: usize = 936;
 
 const LEN: usize = 256;
 const N: usize = NUM_WORDS;
