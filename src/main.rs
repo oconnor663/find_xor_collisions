@@ -1,4 +1,3 @@
-use anyhow::Result;
 use std::array;
 use std::cmp;
 
@@ -75,7 +74,27 @@ fn make_matrix(vecs: [[u8; LEN]; N], target: [u8; LEN]) -> [[u8; N + 1]; LEN] {
     matrix
 }
 
-fn main() -> Result<()> {
+fn back_propagate(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
+    for this_row in (0..LEN).rev() {
+        let mut first_nonzero_col = None;
+        for col in 0..N {
+            if matrix[this_row][col] == 1 {
+                first_nonzero_col = Some(col);
+                break;
+            }
+        }
+        if let Some(col) = first_nonzero_col {
+            for other_row in 0..this_row {
+                if matrix[other_row][col] == 1 {
+                    matrix[other_row] = add(matrix[other_row], matrix[this_row]);
+                }
+            }
+        }
+    }
+    matrix
+}
+
+fn main() {
     const LEN: usize = 3;
     const N: usize = 3;
 
@@ -100,6 +119,44 @@ fn main() -> Result<()> {
     println!("row eschelon form:");
     let re_form = row_eschelon_form(matrix);
     print_matrix(re_form);
+    println!();
+    let reduced_re_form = back_propagate(re_form);
+    println!("back propagated:");
+    print_matrix(reduced_re_form);
 
-    Ok(())
+    println!();
+    let mut bad = [0; N + 1];
+    bad[N] = 1;
+    for row in 0..LEN {
+        if reduced_re_form[row] == bad {
+            println!("NO SOLUTION!");
+            return;
+        }
+    }
+
+    // Collect the results.
+    let mut results = [None; N];
+    for row in 0..LEN {
+        for col in 0..N {
+            if reduced_re_form[row][col] == 1 {
+                assert!(results[col].is_none());
+                results[col] = Some(reduced_re_form[row][N]);
+                break;
+            }
+        }
+    }
+
+    // Print the results.
+    println!();
+    println!("solution:");
+    for i in 0..N {
+        if let Some(1) = results[i] {
+            print_row(vecs[i]);
+        }
+    }
+    for _ in 0..(2 * LEN + 1) {
+        print!("-");
+    }
+    println!();
+    print_row(target);
 }
