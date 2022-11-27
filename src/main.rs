@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use std::array;
 
 const WORDS: &str = include_str!("../words.txt");
@@ -93,11 +94,11 @@ fn vec_from_str(s: &str) -> [u8; LEN] {
     v
 }
 
-fn main() {
-    let words: Vec<&str> = WORDS.split_whitespace().collect();
+fn find_solution(target_str: &str, words: &[&'static str]) -> Vec<&'static str> {
+    // The words may be shuffled, but they should still all be there.
+    assert_eq!(words.len(), NUM_WORDS);
+
     let vecs = array::from_fn(|i| vec_from_str(&words[i]));
-    let target_str = "hello world";
-    eprintln!("for target string: {:?}", target_str);
     let target = vec_from_str(target_str);
 
     let matrix = make_matrix(vecs, target);
@@ -116,33 +117,17 @@ fn main() {
     }
 
     // Collect the results.
-    let mut results = [None; N];
+    let mut result_words = Vec::new();
     for row in 0..LEN {
         for col in 0..N {
             if reduced_re_form[row][col] == 1 {
-                assert!(results[col].is_none());
-                results[col] = Some(reduced_re_form[row][N]);
+                if reduced_re_form[row][N] == 1 {
+                    result_words.push(words[col]);
+                }
                 break;
             }
         }
     }
-
-    // Print the results.
-    let mut result_words = Vec::new();
-    print!("[");
-    let mut first = true;
-    for i in 0..N {
-        if let Some(1) = results[i] {
-            if first {
-                first = false;
-            } else {
-                print!(", ");
-            }
-            print!("{:?}", words[i]);
-            result_words.push(words[i]);
-        }
-    }
-    println!("]");
 
     // Assert that the results are correct.
     let target_hash = *blake3::hash(target_str.as_bytes()).as_bytes();
@@ -157,4 +142,40 @@ fn main() {
         }
     }
     assert_eq!(sum, target_hash);
+
+    result_words
+}
+
+fn print_json_words(words: &[&str]) {
+    // Print the results as JSON.
+    print!("[");
+    let mut first = true;
+    for word in words {
+        if first {
+            first = false;
+        } else {
+            print!(", ");
+        }
+        print!("{:?}", word);
+    }
+    println!("]");
+}
+
+fn main() {
+    let target_str = "hello world";
+    println!("for target string: {:?}", target_str);
+    let mut words: Vec<&str> = WORDS.split_whitespace().collect();
+
+    // Find the shortest result we can.
+    let mut best = usize::MAX;
+    let mut rng = rand::thread_rng();
+    loop {
+        words.shuffle(&mut rng);
+        let result_words = find_solution(target_str, &words);
+        if result_words.len() < best {
+            println!("found a solution of length {}", result_words.len());
+            best = result_words.len();
+            print_json_words(&result_words);
+        }
+    }
 }
