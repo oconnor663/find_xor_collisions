@@ -129,9 +129,12 @@ fn main() {
 
     // Print the results.
     print!("[");
+    let mut first = true;
     for i in 0..N {
         if let Some(1) = results[i] {
-            if i > 0 {
+            if first {
+                first = false;
+            } else {
                 print!(", ");
             }
             print!("{:?}", words[i]);
