@@ -1,5 +1,5 @@
 [package]
-name = "elimination"
+name = "find_xor_collisions"
 version = "0.1.0"
 edition = "2021"
 
