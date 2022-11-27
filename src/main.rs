@@ -1,12 +1,10 @@
 use std::array;
-use std::cmp;
+
+const NUM_WORDS: usize = 1000;
+const WORDS: &str = include_str!("../words.txt");
 
 const LEN: usize = 256;
-const N: usize = 256;
-
-fn random_vec() -> [u8; LEN] {
-    array::from_fn(|_| rand::random::<u8>() % 2)
-}
+const N: usize = NUM_WORDS;
 
 fn add<const SIZE: usize>(a: [u8; SIZE], b: [u8; SIZE]) -> [u8; SIZE] {
     array::from_fn(|i| (a[i] + b[i]) % 2)
@@ -20,26 +18,12 @@ fn test_add() {
     assert_eq!(add(a, b), c);
 }
 
-fn print_row<const SIZE: usize>(vec: [u8; SIZE]) {
-    print!("[");
-    for x in vec {
-        print!("{}", x);
-    }
-    println!("]");
-}
-
-fn print_matrix(matrix: [[u8; N + 1]; LEN]) {
-    for row in matrix {
-        print_row(row);
-    }
-}
-
 fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
     let mut current_row = 0;
-    for col in 0..cmp::min(N, LEN) {
+    for col in 0..N {
         // Find a row at or below the current one with this column set.
         let mut found_row = None;
-        for row in current_row..N {
+        for row in current_row..LEN {
             if matrix[row][col] == 1 {
                 found_row = Some(row);
                 break;
@@ -53,12 +37,16 @@ fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
             continue;
         }
         // Eliminate this column from all rows below.
-        for row in current_row + 1..N {
+        for row in (current_row + 1)..LEN {
             if matrix[row][col] == 1 {
                 matrix[row] = add(matrix[row], matrix[current_row]);
             }
         }
         current_row += 1;
+        // Quit if we've run out of rows.
+        if current_row == LEN {
+            break;
+        }
     }
     matrix
 }
@@ -94,40 +82,36 @@ fn back_propagate(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
     matrix
 }
 
-fn main() {
-    let vecs: [[u8; LEN]; N] = array::from_fn(|_| random_vec());
-    let target = random_vec();
-
-    // let vecs = [[0, 0, 0], [1, 1, 1], [0, 1, 0]];
-    // let target = [0, 1, 1];
-
-    println!("vecs:");
-    for v in vecs {
-        print_row(v);
+fn vec_from_str(s: &str) -> [u8; LEN] {
+    let hash = blake3::hash(s.as_bytes());
+    let mut v = [0; LEN];
+    for byte_index in 0..hash.as_bytes().len() {
+        for bit_index in 0..8 {
+            v[8 * byte_index + bit_index] = (hash.as_bytes()[byte_index] >> bit_index) & 1;
+        }
     }
-    println!();
-    println!("target:");
-    print_row(target);
-    println!();
-    println!("transposed equations:");
-    let matrix = make_matrix(vecs, target);
-    print_matrix(matrix);
-    println!();
-    println!("row eschelon form:");
-    let re_form = row_eschelon_form(matrix);
-    print_matrix(re_form);
-    println!();
-    let reduced_re_form = back_propagate(re_form);
-    println!("back propagated:");
-    print_matrix(reduced_re_form);
+    v
+}
 
-    println!();
+fn main() {
+    let words: Vec<&str> = WORDS.split_whitespace().collect();
+    let vecs = array::from_fn(|i| vec_from_str(&words[i]));
+    let target_str = "hello world";
+    eprintln!("for target string: {:?}", target_str);
+    let target = vec_from_str(target_str);
+
+    let matrix = make_matrix(vecs, target);
+
+    let re_form = row_eschelon_form(matrix);
+
+    let reduced_re_form = back_propagate(re_form);
+
     let mut bad = [0; N + 1];
     bad[N] = 1;
     for row in 0..LEN {
         if reduced_re_form[row] == bad {
-            println!("NO SOLUTION!");
-            return;
+            eprintln!("NO SOLUTION!");
+            std::process::exit(1);
         }
     }
 
@@ -144,16 +128,14 @@ fn main() {
     }
 
     // Print the results.
-    println!();
-    println!("solution:");
+    print!("[");
     for i in 0..N {
         if let Some(1) = results[i] {
-            print_row(vecs[i]);
+            if i > 0 {
+                print!(", ");
+            }
+            print!("{:?}", words[i]);
         }
     }
-    for _ in 0..(LEN + 2) {
-        print!("-");
-    }
-    println!();
-    print_row(target);
+    println!("]");
 }
