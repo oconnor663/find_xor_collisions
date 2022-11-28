@@ -19,7 +19,7 @@ fn test_add() {
     assert_eq!(add(a, b), c);
 }
 
-fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
+fn row_eschelon_form(matrix: &mut [[u8; N + 1]; LEN]) {
     let mut current_row = 0;
     for col in 0..N {
         // Find a row at or below the current one with this column set.
@@ -49,11 +49,10 @@ fn row_eschelon_form(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
             break;
         }
     }
-    matrix
 }
 
-fn make_matrix(vecs: [[u8; LEN]; N], target: [u8; LEN]) -> [[u8; N + 1]; LEN] {
-    let mut matrix = [[0; N + 1]; LEN];
+fn make_matrix(vecs: &[[u8; LEN]; N], target: &[u8; LEN]) -> Box<[[u8; N + 1]; LEN]> {
+    let mut matrix = Box::new([[0; N + 1]; LEN]);
     for row in 0..LEN {
         for col in 0..N {
             matrix[row][col] = vecs[col][row];
@@ -63,7 +62,7 @@ fn make_matrix(vecs: [[u8; LEN]; N], target: [u8; LEN]) -> [[u8; N + 1]; LEN] {
     matrix
 }
 
-fn back_propagate(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
+fn back_propagate(matrix: &mut [[u8; N + 1]; LEN]) {
     for this_row in (0..LEN).rev() {
         let mut first_nonzero_col = None;
         for col in 0..N {
@@ -80,7 +79,6 @@ fn back_propagate(mut matrix: [[u8; N + 1]; LEN]) -> [[u8; N + 1]; LEN] {
             }
         }
     }
-    matrix
 }
 
 fn vec_from_str(s: &str) -> [u8; LEN] {
@@ -98,19 +96,19 @@ fn find_solution(target_str: &str, words: &[&'static str]) -> Vec<&'static str> 
     // The words may be shuffled, but they should still all be there.
     assert_eq!(words.len(), NUM_WORDS);
 
-    let vecs = array::from_fn(|i| vec_from_str(&words[i]));
+    let vecs = Box::new(array::from_fn(|i| vec_from_str(&words[i])));
     let target = vec_from_str(target_str);
 
-    let matrix = make_matrix(vecs, target);
+    let mut matrix = make_matrix(&vecs, &target);
 
-    let re_form = row_eschelon_form(matrix);
+    row_eschelon_form(&mut matrix);
 
-    let reduced_re_form = back_propagate(re_form);
+    back_propagate(&mut matrix);
 
     let mut bad = [0; N + 1];
     bad[N] = 1;
     for row in 0..LEN {
-        if reduced_re_form[row] == bad {
+        if matrix[row] == bad {
             eprintln!("NO SOLUTION!");
             std::process::exit(1);
         }
@@ -120,8 +118,8 @@ fn find_solution(target_str: &str, words: &[&'static str]) -> Vec<&'static str> 
     let mut result_words = Vec::new();
     for row in 0..LEN {
         for col in 0..N {
-            if reduced_re_form[row][col] == 1 {
-                if reduced_re_form[row][N] == 1 {
+            if matrix[row][col] == 1 {
+                if matrix[row][N] == 1 {
                     result_words.push(words[col]);
                 }
                 break;
